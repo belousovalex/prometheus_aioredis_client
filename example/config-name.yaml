@@ -1,0 +1,29 @@
+phantom:
+  address: localhost:8080
+  uris:
+    - "/counter"
+    - "/counter/test1"
+    - "/counter/test2"
+    - "/summary/test1/1.23"
+    - "/summary/test2/1.43"
+    - "/summary/1.3"
+    - "/histogram/test_h1/0"
+    - "/histogram/test_h1/50"
+    - "/histogram/test_h1/150"
+    - "/histogram/test_h2/1"
+    - "/histogram/test_h2/100"
+    - "/histogram/test_h2/201"
+    - "/histogram/200"
+    - "/histogram/205"
+    - "/histogram/20"
+    - "/gauge/test1/100"
+    - "/gauge/test2/201"
+    - "/gauge/200"
+    - "/metrics"
+  load_profile:
+    load_type: rps
+    schedule: const(500, 10m)
+console:
+  enabled: true
+telegraf:
+  enabled: false
