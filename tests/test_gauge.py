@@ -83,6 +83,43 @@ class TestGauge(object):
             ) % gauge_index
 
     @pytest.mark.asyncio
+    async def test_sync_interface_with_labels(self):
+        async with MetricEnvironment(self.redis_uri) as redis:
+            gauge = prom.Gauge(
+                "test_gauge",
+                "Gauge Documentation",
+                ['name'],
+                expire=4,
+            )
+
+            gauge.labels(name='test').set(12.3)
+            await prom.REGISTRY.task_manager.wait_tasks()
+
+            gauge_index = int(await redis.get(prom.DEFAULT_GAUGE_INDEX_KEY))
+            group_key = gauge.get_metric_group_key()
+            metric_key = "test_gauge:{}".format(
+                base64.b64encode(('{"gauge_index": %s, "name": "test"}' % gauge_index).encode('utf-8')).decode('utf-8')
+            ).encode('utf-8')
+            assert sorted(await redis.smembers(group_key)) == sorted([
+                metric_key
+            ])
+            assert float(await redis.get(metric_key)) == 12.3
+
+            gauge.labels(name='test').inc(1.7)
+            await prom.REGISTRY.task_manager.wait_tasks()
+
+            assert sorted(await redis.smembers(group_key)) == sorted([
+                metric_key
+            ])
+            assert float(await redis.get(metric_key)) == 14.0
+
+            assert (await prom.REGISTRY.output()) == (
+                "# HELP test_gauge Gauge Documentation\n"
+                "# TYPE test_gauge gauge\n"
+                "test_gauge{gauge_index=\"%s\",name=\"test\"} 14"
+            ) % gauge_index
+
+    @pytest.mark.asyncio
     async def test_auto_clean(self):
         async with MetricEnvironment(self.redis_uri) as redis:
             gauge = prom.Gauge(

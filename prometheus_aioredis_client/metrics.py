@@ -218,12 +218,22 @@ class Gauge(Metric):
     def _inc_internal(self, key: str, value: float):
         self.gauge_values[key] += value
 
-    async def a_inc(self, value: float=1, labels=None):
+    def inc(self, value: float, labels=None):
+        labels = labels or {}
+        self._check_labels(labels)
+        self.registry.task_manager.add_task(self._a_inc(value, labels))
+
+    async def a_inc(self, value: float = 1, labels=None):
         labels = labels or {}
         self._check_labels(labels)
         return await self._a_inc(value, labels)
 
-    async def a_dec(self, value: float=1, labels=None):
+    def dec(self, value: float, labels=None):
+        labels = labels or {}
+        self._check_labels(labels)
+        self.registry.task_manager.add_task(self._a_inc(-value, labels))
+
+    async def a_dec(self, value: float = 1, labels=None):
         labels = labels or {}
         self._check_labels(labels)
         return await self._a_inc(-value, labels)
@@ -244,6 +254,11 @@ class Gauge(Metric):
             await self.add_refresher()
 
             return await future_answer
+
+    def set(self, value: float, labels=None):
+        labels = labels or {}
+        self._check_labels(labels)
+        self.registry.task_manager.add_task(self._a_set(value, labels))
 
     async def a_set(self, value: float=1, labels=None):
         labels = labels or {}
@@ -308,7 +323,6 @@ class Histogram(Metric):
     def __init__(self, *args, buckets: list, **kwargs):
         super().__init__(*args, **kwargs)
         self.buckets = sorted(buckets, reverse=True)
-
 
     async def a_observe(self, value: float, labels=None):
         labels = labels or {}
