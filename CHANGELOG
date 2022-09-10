@@ -5,3 +5,8 @@ Changes
 ^^^^^^^^^^^^^^^^^^
 
   * First version with support Counter, Summary, Histogram, Gauge.
+  
+0.3.0 (2022-09-10)
+^^^^^^^^^^^^^^^^^^
+
+  * Support python 3.8, 3.9, 3.10. Update dependencies - aioredis to 2.0.*

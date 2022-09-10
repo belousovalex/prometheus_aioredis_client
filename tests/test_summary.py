@@ -9,7 +9,7 @@ class TestSummary(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             summary = prom.Summary(
                 name="test_summary",
@@ -39,7 +39,7 @@ class TestSummary(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             summary = prom.Summary(
                 name="test_summary",
@@ -81,7 +81,7 @@ class TestSummary(object):
 
     @pytest.mark.asyncio
     async def test_simple_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             counter = prom.Summary(
                 name="test_summary",
@@ -101,7 +101,7 @@ class TestSummary(object):
 
     @pytest.mark.asyncio
     async def test_simple_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             summary = prom.Summary(
                 name="test_summary",

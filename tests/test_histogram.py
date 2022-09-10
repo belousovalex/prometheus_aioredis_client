@@ -9,7 +9,7 @@ class TestHistogram(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             histogram = prom.Histogram(
                 name="test_histogram",
@@ -54,7 +54,7 @@ class TestHistogram(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             histogram = prom.Histogram(
                 name="test_histogram",
@@ -75,7 +75,6 @@ class TestHistogram(object):
             await histogram.labels("123.123.123.123", "/home/").a_observe(2.1)
             group_key = histogram.get_metric_group_key()
 
-            print(await redis.smembers(group_key))
             counter_key = b'test_histogram_count:eyJob3N0IjogIjEyMy4xMjMuMTIzLjEyMyIsICJ1cmwiOiAiL2hvbWUvIn0='
             sum_key = b'test_histogram_sum:eyJob3N0IjogIjEyMy4xMjMuMTIzLjEyMyIsICJ1cmwiOiAiL2hvbWUvIn0='
             key_bucket_3 = b'test_histogram_bucket:eyJob3N0IjogIjEyMy4xMjMuMTIzLjEyMyIsICJsZSI6IDMsICJ1cmwiOiAiL2hvbWUvIn0='
@@ -120,7 +119,7 @@ class TestHistogram(object):
 
     @pytest.mark.asyncio
     async def test_simple_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             histogram = prom.Histogram(
                 name="test_histogram",
@@ -140,7 +139,7 @@ class TestHistogram(object):
 
     @pytest.mark.asyncio
     async def test_simple_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             histogram = prom.Histogram(
                 name="test_histogram",

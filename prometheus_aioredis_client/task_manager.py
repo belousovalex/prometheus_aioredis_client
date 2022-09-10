@@ -9,8 +9,7 @@ class TaskManager(object):
     Manage all running tasks and refresh gauge values.
     """
 
-    def __init__(self, refresh_period=30, refresh_enable=True, loop=None):
-        self._loop = loop or asyncio.get_event_loop()
+    def __init__(self, refresh_period=30, refresh_enable=True):
         self.tasks = []
         self._refresh_enable = refresh_enable
         self._refresh_period = refresh_period
@@ -25,7 +24,7 @@ class TaskManager(object):
     def add_task(self, coro):
         if self._close:
             raise Exception("Cant add task for closed manager.")
-        task = asyncio.ensure_future(coro, loop=self._loop)
+        task = asyncio.create_task(coro)
         self.tasks.append(task)
         task.add_done_callback(self.tasks.remove)
 
@@ -37,9 +36,7 @@ class TaskManager(object):
                 raise Exception("Cant add refresh function in closed manager.")
             self._refreshers.append(refresh_async_func)
             if self._refresh_task is None:
-                self._refresh_task = asyncio.ensure_future(
-                    self.refresh(), loop=self._loop
-                )
+                self._refresh_task = asyncio.create_task(self.refresh())
 
     async def refresh(self):
         while self._close is False:
@@ -49,11 +46,9 @@ class TaskManager(object):
                     await refresher()
 
     async def wait_tasks(self):
-        await asyncio.gather(
-            *self.tasks,
-            return_exceptions=True,
-            loop=self._loop
-        )
+        if not self.tasks:
+            return
+        await asyncio.wait(self.tasks)
 
     async def close(self):
         self._close = True

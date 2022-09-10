@@ -11,7 +11,7 @@ class TestGauge(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
             gauge = prom.Gauge(
                 "test_gauge",
                 "Gauge Documentation",
@@ -50,7 +50,7 @@ class TestGauge(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
             gauge = prom.Gauge(
                 "test_gauge",
                 "Gauge Documentation",
@@ -84,7 +84,7 @@ class TestGauge(object):
 
     @pytest.mark.asyncio
     async def test_sync_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
             gauge = prom.Gauge(
                 "test_gauge",
                 "Gauge Documentation",
@@ -121,7 +121,7 @@ class TestGauge(object):
 
     @pytest.mark.asyncio
     async def test_auto_clean(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
             gauge = prom.Gauge(
                 "test_gauge",
                 "Gauge Documentation",
@@ -149,11 +149,11 @@ class TestGauge(object):
                 "# TYPE test_gauge gauge"
             )
             # ... and remove metric from group
-            assert (await redis.smembers(group_key)) == []
+            assert (await redis.smembers(group_key)) == set()
 
     @pytest.mark.asyncio
     async def test_refresh(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
             gauge = prom.Gauge(
                 "test_gauge",
                 "Gauge Documentation",

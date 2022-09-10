@@ -12,7 +12,6 @@ from .task_manager import TaskManager
 REGISTRY = Registry(task_manager=TaskManager())
 
 
-
 DEFAULT_GAUGE_INDEX_KEY = 'GLOBAL_GAUGE_INDEX'
 
 
@@ -147,12 +146,9 @@ class Counter(Metric):
         group_key = self.get_metric_group_key()
         metric_key = self.get_metric_key(labels)
 
-        tr = self.registry.redis.multi_exec()
-        tr.sadd(group_key, metric_key)
-        future_answer = tr.incrby(metric_key, int(value))
-        await tr.execute()
-
-        return await future_answer
+        async with self.registry.redis.pipeline(transaction=True) as pipe:
+            _, future_answer = (await pipe.sadd(group_key, metric_key).incrby(metric_key, int(value)).execute())
+        return future_answer
 
 
 class Summary(Metric):
@@ -177,13 +173,15 @@ class Summary(Metric):
         sum_metric_key = self.get_metric_key(labels, "_sum")
         count_metric_key = self.get_metric_key(labels, "_count")
 
-        tr = self.registry.redis.multi_exec()
-        tr.sadd(group_key, count_metric_key, sum_metric_key)
-        future_answer = tr.incrbyfloat(sum_metric_key, float(value))
-        tr.incr(count_metric_key)
-        await tr.execute()
+        async with self.registry.redis.pipeline(transaction=True) as pipe:
+            _, future_answer, _ = (
+                await pipe.sadd(group_key, count_metric_key, sum_metric_key)
+                .incrbyfloat(sum_metric_key, float(value))
+                .incr(count_metric_key)
+                .execute()
+            )
 
-        return await future_answer
+        return future_answer
 
 
 class Gauge(Metric):
@@ -244,23 +242,25 @@ class Gauge(Metric):
             labels['gauge_index'] = await self.get_gauge_index()
             metric_key = self.get_metric_key(labels)
 
-            tr = self.registry.redis.multi_exec()
-            tr.sadd(group_key, metric_key)
-            future_answer = tr.incrbyfloat(metric_key, float(value))
-            tr.expire(metric_key, self.expire)
-            self._inc_internal(metric_key, float(value))
-            await tr.execute()
+            async with self.registry.redis.pipeline(transaction=True) as pipe:
+                _, future_answer, _ = (
+                    await pipe.sadd(group_key, metric_key)
+                    .incrbyfloat(metric_key, float(value))
+                    .expire(metric_key, self.expire)
+                    .execute()
+                )
+                self._inc_internal(metric_key, float(value))
 
             await self.add_refresher()
 
-            return await future_answer
+            return future_answer
 
     def set(self, value: float, labels=None):
         labels = labels or {}
         self._check_labels(labels)
         self.registry.task_manager.add_task(self._a_set(value, labels))
 
-    async def a_set(self, value: float=1, labels=None):
+    async def a_set(self, value: float = 1, labels=None):
         labels = labels or {}
         self._check_labels(labels)
         return await self._a_set(value, labels)
@@ -271,17 +271,17 @@ class Gauge(Metric):
             labels['gauge_index'] = await self.get_gauge_index()
             metric_key = self.get_metric_key(labels)
 
-            tr = self.registry.redis.multi_exec()
-            tr.sadd(group_key, metric_key)
-            future_answer = tr.set(
-                metric_key, float(value),
-                expire=self.expire
-            )
-            self._set_internal(metric_key, float(value))
-            await tr.execute()
+            async with self.registry.redis.pipeline(transaction=True) as pipe:
+                _, future_answer, _ = (
+                    await pipe.sadd(group_key, metric_key)
+                    .set(metric_key, float(value))
+                    .expire(metric_key, self.expire)
+                    .execute()
+                )
+                self._set_internal(metric_key, float(value))
             await self.add_refresher()
 
-            return await future_answer
+            return future_answer
 
     async def get_gauge_index(self):
         if self.index is None:
@@ -300,9 +300,8 @@ class Gauge(Metric):
     async def refresh_values(self):
         async with self.lock:
             for key, value in self.gauge_values.items():
-                await self.registry.redis.set(
-                    key, value, expire=self.expire
-                )
+                await self.registry.redis.set(key, value)
+                await self.registry.redis.expire(key, self.expire)
     
     async def cleanup(self):
         async with self.lock:
@@ -310,10 +309,8 @@ class Gauge(Metric):
             keys = list(self.gauge_values.keys())
             if len(keys) == 0:
                 return
-            tr = self.registry.redis.multi_exec()
-            tr.srem(group_key, *keys)
-            tr.delete(*keys)
-            await tr.execute()
+            async with self.registry.redis.pipeline(transaction=True) as pipe:
+                await pipe.srem(group_key, *keys).delete(*keys).execute()
 
 
 class Histogram(Metric):
@@ -340,18 +337,18 @@ class Histogram(Metric):
         group_key = self.get_metric_group_key()
         sum_key = self.get_metric_key(labels, '_sum')
         counter_key = self.get_metric_key(labels, '_count')
-        tr = self.registry.redis.multi_exec()
-        for bucket in self.buckets:
-            if value > bucket:
-                break
-            labels['le'] = bucket
-            bucket_key = self.get_metric_key(labels, '_bucket')
-            tr.sadd(group_key, bucket_key)
-            tr.incr(bucket_key)
-        tr.sadd(group_key, sum_key, counter_key)
-        tr.incr(counter_key)
-        tr.incrbyfloat(sum_key, float(value))
-        await tr.execute()
+        async with self.registry.redis.pipeline(transaction=True) as pipe:
+            for bucket in self.buckets:
+                if value > bucket:
+                    break
+                labels['le'] = bucket
+                bucket_key = self.get_metric_key(labels, '_bucket')
+                pipe.sadd(group_key, bucket_key)
+                pipe.incr(bucket_key)
+            pipe.sadd(group_key, sum_key, counter_key)
+            pipe.incr(counter_key)
+            pipe.incrbyfloat(sum_key, float(value))
+            await pipe.execute()
 
     def _get_missing_metric_values(self, redis_metric_values):
         missing_metrics_values = set(

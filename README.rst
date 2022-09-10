@@ -13,7 +13,7 @@ Be careful for use it in production.
 Features
 ========
 
-- Support pythons 3.5, 3.6, 3.7
+- Support pythons 3.8, 3.9, 3.10
 - Support Counter
 - Support Summary
 - Support Histogram
@@ -49,10 +49,8 @@ Simple aiohttp app example
     registry = prom.Registry()
 
     async def on_start(app):
-        app['redis_pool'] = await aioredis.create_redis_pool(
+        app['redis_pool'] = await aioredis.from_url(
             "redis://localhost:6380",
-            timeout=5,
-            maxsize=100,
         )
         # setup redis connection in registry
         # all metrics in this registry will use this connection
@@ -61,8 +59,7 @@ Simple aiohttp app example
     async def on_stop(app):
         # wait for closing all tasks and delete gauge metric values
         await prom.REGISTRY.cleanup_and_close()
-        app['redis_pool'].close()
-        await app['redis_pool'].wait_closed()
+        await app['redis_pool'].close()
 
     async def inc(r):
         # create future and put it in event loop

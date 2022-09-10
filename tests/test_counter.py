@@ -9,7 +9,7 @@ class TestCounter(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             counter = prom.Counter(
                 name="test_counter1",
@@ -20,7 +20,7 @@ class TestCounter(object):
             group_key = counter.get_metric_group_key()
             metric_key = counter.get_metric_key({})
 
-            assert (await redis.smembers(group_key)) == [b'test_counter1:e30=']
+            assert (await redis.smembers(group_key)) == {b'test_counter1:e30='}
             assert int(await redis.get(metric_key)) == 1
 
             await counter.a_inc(3)
@@ -34,7 +34,7 @@ class TestCounter(object):
 
     @pytest.mark.asyncio
     async def test_await_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             counter = prom.Counter(
                 name="test_counter2",
@@ -55,7 +55,7 @@ class TestCounter(object):
             group_key = counter.get_metric_group_key()
             metric_key = counter.get_metric_key(labels)
 
-            assert (await redis.smembers(group_key)) == [b'test_counter2:eyJob3N0IjogIjEyMy4xMjMuMTIzLjEyMyIsICJ1cmwiOiAiL2hvbWUvIn0=']
+            assert (await redis.smembers(group_key)) == {b'test_counter2:eyJob3N0IjogIjEyMy4xMjMuMTIzLjEyMyIsICJ1cmwiOiAiL2hvbWUvIn0='}
             assert int(await redis.get(metric_key)) == 2
 
             assert (await counter.labels(**labels).a_inc(3)) == 5
@@ -64,7 +64,7 @@ class TestCounter(object):
 
     @pytest.mark.asyncio
     async def test_simple_interface_without_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             counter = prom.Counter(
                 name="test_counter2",
@@ -76,12 +76,12 @@ class TestCounter(object):
             metric_key = counter.get_metric_key({})
             await prom.REGISTRY.task_manager.wait_tasks()
 
-            assert (await redis.smembers(group_key)) == [b'test_counter2:e30=']
+            assert (await redis.smembers(group_key)) == {b'test_counter2:e30='}
             assert int(await redis.get(metric_key)) == 1
 
     @pytest.mark.asyncio
     async def test_simple_interface_with_labels(self):
-        async with MetricEnvironment(self.redis_uri) as redis:
+        async with MetricEnvironment() as redis:
 
             counter = prom.Counter(
                 name="test_counter2",
@@ -104,9 +104,9 @@ class TestCounter(object):
 
             await prom.REGISTRY.task_manager.wait_tasks()
 
-            assert (await redis.smembers(group_key)) == [
+            assert (await redis.smembers(group_key)) == {
                 b'test_counter2:eyJob3N0IjogIjEyMy4xMjMuMTIzLjEyMyIsICJ1cmwiOiAiL2hvbWUvIn0='
-            ]
+            }
             assert int(await redis.get(metric_key)) == 2
 
             counter.labels(**labels).inc(3)

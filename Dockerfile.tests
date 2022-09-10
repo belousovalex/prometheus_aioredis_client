@@ -1,0 +1,16 @@
+FROM belousovalex/tox_image
+
+COPY requirements .
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements && pip3 install tox==3.25.1
+
+RUN mkdir /src/
+
+WORKDIR /src/
+
+COPY setup.py .
+COPY tox.ini .
+COPY prometheus_aioredis_client ./prometheus_aioredis_client/
+COPY tests ./tests
+
+CMD tox
