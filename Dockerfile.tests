@@ -2,7 +2,7 @@ FROM belousovalex/tox_image
 
 COPY requirements .
 RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements && pip3 install tox==3.25.1
+RUN pip3 install -r requirements
 
 RUN mkdir /src/
 

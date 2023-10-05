@@ -1,9 +1,10 @@
-import aioredis
 from aiohttp import web
 from prometheus_aioredis_client import (
     Counter, Histogram, Summary, Gauge,
     REGISTRY
 )
+from redis import asyncio as aioredis
+
 
 counter = Counter("simple_counter", "Simple Counter documentation")
 counter_with_labels = Counter(
@@ -95,12 +96,13 @@ async def gauge_view(request):
         content_type='text'
     )
 
+
 async def metrics_view(request):
     return web.Response(body=(await REGISTRY.output()), content_type='text')
 
 
 async def prometheus_init(app):
-    app['redis_pool'] = await aioredis.create_redis_pool(
+    app['redis_pool'] = aioredis.ConnectionPool.from_url(
         "redis://localhost:6380",
         timeout=15,
         maxsize=500,
@@ -114,6 +116,7 @@ async def prometheus_clear(app):
     await REGISTRY.cleanup_and_close()
     app['redis_pool'].close()
     await app['redis_pool'].wait_closed()
+
 
 def init_app():
     app = web.Application()
@@ -131,8 +134,8 @@ def init_app():
     app.on_startup.append(prometheus_init)
     app.on_cleanup.append(prometheus_clear)
 
-
     return app
+
 
 app = init_app()
 

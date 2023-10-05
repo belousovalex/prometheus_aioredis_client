@@ -13,7 +13,7 @@ Be careful for use it in production.
 Features
 ========
 
-- Support pythons 3.8, 3.9, 3.10
+- Support pythons 3.8, 3.9, 3.10, 3.11
 - Support Counter
 - Support Summary
 - Support Histogram
@@ -35,8 +35,8 @@ Simple aiohttp app example
 .. code-block:: python
 
     from aiohttp import web
-    import aioredis
     import prometheus_aioredis_client as prom
+    from redis import asyncio as aioredis
 
     counter = prom.Counter(
         "counter", "Counter documentation"
