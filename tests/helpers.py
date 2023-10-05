@@ -1,5 +1,5 @@
-import aioredis
 import prometheus_aioredis_client as prom
+from redis import asyncio as aioredis
 
 
 class MetricEnvironment(object):
